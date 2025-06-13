@@ -30,29 +30,39 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     const base64Image = imageBuffer.toString('base64');
     const dataUrl = `data:${req.file.mimetype};base64,${base64Image}`;
 
-    const output = await replicate.run('black-forest-labs/flux-schnell', {
+    const output = await replicate.run('black-forest-labs/flux-kontext-pro', {
       input: {
-        prompt: 'A cool 90s vice magazine style photo',
+        prompt: 'Make this a GTAV style loading screen photo, keep all original details, match pose, match identity, match background as close as possible.',
         image: dataUrl,
         go_fast: true,
         guidance: 3.5,
         num_outputs: 1,
         aspect_ratio: '1:1',
-        output_format: 'webp',
+        output_format: 'jpeg',
         output_quality: 80,
-        prompt_strength: 0.8,
+        prompt_strength: 0.3,
         num_inference_steps: 4,
       },
     });
 
-    if (output && output.length > 0) {
-      res.json({ success: true, imageUrl: output[0] });
+    console.log('Replicate output:', output);
+
+    if (output && output.length > 0 && output[0].startsWith('https://')) {
+      // Always send 200 OK if we got an image
+      res.status(200).json({ success: true, imageUrl: output[0] });
     } else {
-      res.status(500).json({ error: 'Failed to generate image' });
+      // If Replicate failed
+      res.status(500).json({
+        error: 'Failed to generate image (empty output)',
+        details: output,
+      });
     }
   } catch (error) {
     console.error('Error processing upload:', error);
-    res.status(500).json({ error: 'Failed to process image', details: error.message });
+    res.status(500).json({
+      error: 'Failed to process image',
+      details: error.message,
+    });
   }
 });
 
